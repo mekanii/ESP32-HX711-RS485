@@ -232,17 +232,16 @@ void deletePart(int id) {
 
 // BEGIN: SCALE MANAGER
 void tare() {
-  // LoadCell.tareNoDelay();
-  // while (!LoadCell.getTareStatus()) {
-  //   LoadCell.update();
-  //   delay(100);
-  //   Serial.println("Taring...");
-  // }
-  LoadCell.tare();
+  LoadCell.tareNoDelay();
+  while (!LoadCell.getTareStatus()) {
+    LoadCell.update();
+    delay(100);
+  }
+  // LoadCell.tare();
 
   DynamicJsonDocument responseDoc(1024);
   responseDoc["data"] = nullptr;
-  responseDoc["message"] = "Part deleted";
+  responseDoc["message"] = "Tare initialized successfully";
   responseDoc["status"] = 200;
   
   serializeJson(responseDoc, Serial);
