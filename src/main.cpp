@@ -431,7 +431,11 @@ void initCalibration() {
   // Serial.println("Place the load cell an a level stable surface.");
   // Serial.println("Remove any load applied to the load cell.");
 
-  tare();
+  LoadCell.tareNoDelay();
+  while (!LoadCell.getTareStatus()) {
+    LoadCell.update();
+    delay(100);
+  }
 
   // Serial.println("Now, place your known mass on the loadcell.");
   
@@ -448,7 +452,6 @@ void initCalibration() {
 void createCalibrationFactor(float knownWeight) {
   // Refresh the dataset to be sure that the known mass is measured correctly
   LoadCell.refreshDataSet();
-  Serial.println(knownWeight);
 
   // Get the new calibration value
   float newCalibrationFactor = LoadCell.getNewCalibration(knownWeight);
@@ -484,7 +487,7 @@ void createCalibrationFactor(float knownWeight) {
   // Serial.println("***");
 
   DynamicJsonDocument responseDoc(1024);
-  responseDoc["data"] = nullptr;
+  responseDoc["data"] = newCalibrationFactor;
   responseDoc["message"] = "Cal Factor created";
   responseDoc["status"] = 200;
   
