@@ -301,6 +301,19 @@ void initScale() {
   while (!LoadCell.update());
 }
 
+void refreshDataSet() {
+  LoadCell.refreshDataSet();
+
+  DynamicJsonDocument responseDoc(1024);
+  responseDoc["data"] = nullptr;
+  responseDoc["message"] = "Data set refreshed successfully";
+  responseDoc["status"] = 200;
+  
+  serializeJson(responseDoc, Serial);
+
+  Serial.println();
+}
+
 bool checkStableState(float wt, String unit) {
   float hys = 0.0;
   if (doCheckStableState) {
@@ -390,12 +403,15 @@ void getWeight(float partStd, String partUnit) {
 
 void getStableWeight() {
   float data = 0.0;
-  boolean stable = false;
+  bool stable = false;
+  LoadCell.refreshDataSet();
   while (!stable) {
     float newWeight = getScale();
     if (checkStableState(newWeight, "gr")) {
-      data = newWeight;
-      stable = true;
+      if (newWeight > 2.0f) {
+        data = newWeight;
+        stable = true;
+      }
     }
   }
 
@@ -524,6 +540,9 @@ void handleCommand(String inputString) {
       break;
     case 11:
       createCalibrationFactor(data["knownWeight"]);
+      break;
+    case 12:
+      refreshDataSet();
       break;
     default:
       // Serial.println("Unknown command");
