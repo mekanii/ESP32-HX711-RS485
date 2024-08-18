@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <HardwareSerial.h>
 #include <ArduinoJson.h>
 #include "FS.h"
 #include "SPIFFS.h"
@@ -7,7 +8,12 @@
 #define HX711_DT 16
 #define HX711_SCK 17
 
+#define RS485_RX 18
+#define RS485_TX 19
+
 HX711_ADC LoadCell(HX711_DT, HX711_SCK);
+
+HardwareSerial RS485Serial(1);
 
 #define HYSTERESIS 5.0f
 #define HYSTERESIS_KG 0.01f
@@ -591,6 +597,7 @@ void handleCommand(String inputString) {
 
 void setup() {
   Serial.begin(115200);
+  RS485Serial.begin(9600, SERIAL_8N1, RS485_RX, RS485_TX);
 
   if (!SPIFFS.begin(true)) {
     // Serial.println("An Error has occurred while mounting SPIFFS");
