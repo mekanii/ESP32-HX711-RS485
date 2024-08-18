@@ -4,8 +4,8 @@
 #include "SPIFFS.h"
 #include <HX711_ADC.h>
 
-#define HX711_DT 18
-#define HX711_SCK 19
+#define HX711_DT 16
+#define HX711_SCK 17
 
 HX711_ADC LoadCell(HX711_DT, HX711_SCK);
 
@@ -64,7 +64,43 @@ void getPart(int id) {
 
 }
 
-void createPartList() {}
+void createPartList() {
+  const char* jsonContent = R"rawliteral(
+  {
+    "partList": [
+      { "id": 1,"name": "PART 01", "std": 100.00, "unit": "gr", "hysteresis": 5.0 },
+      { "id": 2,"name": "PART 02", "std": 500.00, "unit": "gr", "hysteresis": 5.0 },
+      { "id": 3,"name": "PART 03", "std": 1.25, "unit": "kg", "hysteresis": 0.01 }
+    ]
+  }
+  )rawliteral";
+
+  // Open file for writing
+  File file = SPIFFS.open("/partList.json", FILE_WRITE);
+  if (!file) {
+    Serial.println("Failed to open partList.json for writing");
+    return;
+  }
+
+  // Write the JSON content to the file
+  if (file.print(jsonContent)) {
+    Serial.println("partList.json created successfully");
+  } else {
+    Serial.println("Failed to write to partList.json");
+  }
+
+  // Close the file
+  file.close();
+
+  DynamicJsonDocument responseDoc(1024);
+  responseDoc["data"] = nullptr;
+  responseDoc["message"] = "Parts created";
+  responseDoc["status"] = 200;
+  
+  serializeJson(responseDoc, Serial);
+
+  Serial.println();
+}
 
 void createPart(String name, float std, String unit) {
   const size_t capacity = JSON_ARRAY_SIZE(9) + JSON_OBJECT_SIZE(9) + 400;
