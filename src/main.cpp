@@ -15,8 +15,8 @@ HX711_ADC LoadCell(HX711_DT, HX711_SCK);
 
 HardwareSerial RS485Serial(1);
 
-#define HYSTERESIS 5.0f
-#define HYSTERESIS_KG 0.01f
+// #define HYSTERESIS 5.0f
+// #define HYSTERESIS_KG 0.01f
 #define HYSTERESIS_STABLE_CHECK 1.0f
 #define STABLE_READING_REQUIRED 32
 
@@ -108,7 +108,7 @@ void createPartList() {
   Serial.println();
 }
 
-void createPart(String name, float std, String unit) {
+void createPart(String name, float std, String unit, float hysteresis) {
   const size_t capacity = JSON_ARRAY_SIZE(9) + JSON_OBJECT_SIZE(9) + 400;
   DynamicJsonDocument temp(capacity);
 
@@ -155,6 +155,7 @@ void createPart(String name, float std, String unit) {
   newPart["name"] = name;
   newPart["std"] = std;
   newPart["unit"] = unit;
+  newPart["hysteresis"] = hysteresis;
 
   // Write the updated file
   file = SPIFFS.open("/partList.json", "w");
@@ -175,7 +176,7 @@ void createPart(String name, float std, String unit) {
   Serial.println();
 }
 
-void updatePart(int id, String name, float std, String unit) {
+void updatePart(int id, String name, float std, String unit, float hysteresis) {
   DynamicJsonDocument temp(1024);
 
   // Read the existing file
@@ -198,6 +199,7 @@ void updatePart(int id, String name, float std, String unit) {
       part["name"] = name;
       part["std"] = std;
       part["unit"] = unit;
+      part["hysteresis"] = hysteresis;
       // Serial.println("id: " + String(part["id"].as<int>()));
       // Serial.println("name: " + part["name"].as<String>());
       // Serial.println("std: " + String(part["std"].as<float>(), 2));
@@ -397,19 +399,19 @@ float getScale() {
   return weight;
 }
 
-void getWeight(float partStd, String partUnit) {
+void getWeight(float partStd, String partUnit, float hysteresis) {
   float wt = getScale();
   if (partUnit == "kg") {
     wt = wt / 1000.0;
   }
 
   if (checkStableState(wt, partUnit)) {
-    float hys = 0.0;
-    if (partUnit == "kg") {
-      hys = HYSTERESIS_KG;
-    } else {
-      hys = HYSTERESIS;
-    }
+    // float hys = 0.0;
+    // if (partUnit == "kg") {
+    //   hys = HYSTERESIS_KG;
+    // } else {
+    //   hys = HYSTERESIS;
+    // }
 
     if (partUnit == "kg" && wt <= 0.01f) {
       CHECK_STATUS = 0;
@@ -417,7 +419,7 @@ void getWeight(float partStd, String partUnit) {
     } else if (partUnit == "gr" && wt <= 2.0f) {
       CHECK_STATUS = 0;
       stableWeight = 0.0;
-    } else if (wt >= partStd - hys && wt <= partStd + hys && CHECK_STATUS == 0) {
+    } else if (wt >= partStd - hysteresis && wt <= partStd + hysteresis && CHECK_STATUS == 0) {
       CHECK_STATUS = 1;
       stableWeight = wt;
     } else if (CHECK_STATUS == 0) {
@@ -563,10 +565,10 @@ void handleCommand(String inputString) {
       createPartList();
       break;
     case 4:
-      createPart(data["name"], data["std"], data["unit"]);
+      createPart(data["name"], data["std"], data["unit"], data["hysteresis"]);
       break;
     case 5:
-      updatePart(data["id"], data["name"], data["std"], data["unit"]);
+      updatePart(data["id"], data["name"], data["std"], data["unit"], data["hysteresis"]);
       break;
     case 6:
       deletePart(data["id"]);
@@ -575,7 +577,7 @@ void handleCommand(String inputString) {
       tare();
       break;
     case 8:
-      getWeight(data["std"], data["unit"]);
+      getWeight(data["std"], data["unit"], data["hysteresis"]);
       break;
     case 9:
       getStableWeight();
