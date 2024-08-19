@@ -293,7 +293,7 @@ void tare() {
   Serial.println();
 }
 
-float getCalibrationFactor() {
+float getCalibrationFactor(bool printToSerial = false) {
   File file = SPIFFS.open("/config.json", "r");
   if (!file) {
     // Serial.println("Failed to open file for reading");
@@ -305,18 +305,47 @@ float getCalibrationFactor() {
   file.close();
   if (error) {
     // Serial.println("Failed to read file, using default calibration factor");
+    if (printToSerial) {
+      DynamicJsonDocument responseDoc(1024);
+      responseDoc["data"] = 1.0;
+      responseDoc["message"] = "Failed to read file, using default calibration factor";
+      responseDoc["status"] = 200;
+      
+      serializeJson(responseDoc, Serial);
+
+      Serial.println();
+    }
     return 1.0;  // Return the default calibration factor if file reading fails
   }
 
   // Check if the calFactor key exists and is a valid float
   if (!temp.containsKey("calFactor") || !temp["calFactor"].is<float>()) {
     // Serial.println("calFactor key is missing or not a valid float, using default calibration factor");
+    if (printToSerial) {
+      DynamicJsonDocument responseDoc(1024);
+      responseDoc["data"] = 1.0;
+      responseDoc["message"] = "calFactor key is missing or not a valid float, using default calibration factor";
+      responseDoc["status"] = 200;
+      
+      serializeJson(responseDoc, Serial);
+
+      Serial.println();
+    }
     return 1.0;  // Return the default calibration factor if the key is missing or invalid
   }
 
   float calibrationFactor = temp["calFactor"].as<float>();
   // Serial.println("Calibration factor read from config: " + String(calibrationFactor));
+  if (printToSerial) {
+    DynamicJsonDocument responseDoc(1024);
+    responseDoc["data"] = calibrationFactor;
+    responseDoc["message"] = "Calibration Factor retrieved successfully";
+    responseDoc["status"] = 200;
+    
+    serializeJson(responseDoc, Serial);
 
+    Serial.println();
+  }
   return calibrationFactor;
 }
 
@@ -590,6 +619,9 @@ void handleCommand(String inputString) {
       break;
     case 12:
       refreshDataSet();
+      break;
+    case 13:
+      getCalibrationFactor(true);
       break;
     default:
       // Serial.println("Unknown command");
