@@ -8,15 +8,14 @@
 #define HX711_DT 18
 #define HX711_SCK 19
 
-// #define RS485_RX 16
-// #define RS485_TX 17
+#define RS485_BAUD 19200
 
 HX711_ADC LoadCell(HX711_DT, HX711_SCK);
 
 // #define HYSTERESIS 5.0f
 // #define HYSTERESIS_KG 0.01f
 #define HYSTERESIS_STABLE_CHECK 1.0f
-#define STABLE_READING_REQUIRED 24
+#define STABLE_READING_REQUIRED 32
 
 unsigned long t = 0;
 float weight = 0.00;
@@ -82,15 +81,15 @@ void createPartList() {
   // Open file for writing
   File file = SPIFFS.open("/partList.json", FILE_WRITE);
   if (!file) {
-    Serial2.println("Failed to open partList.json for writing");
+    Serial.println("Failed to open partList.json for writing");
     return;
   }
 
   // Write the JSON content to the file
   if (file.print(jsonContent)) {
-    Serial2.println("partList.json created successfully");
+    Serial.println("partList.json created successfully");
   } else {
-    Serial2.println("Failed to write to partList.json");
+    Serial.println("Failed to write to partList.json");
   }
 
   // Close the file
@@ -294,7 +293,7 @@ void tare() {
 float getCalibrationFactor(bool printToSerial = false) {
   File file = SPIFFS.open("/config.json", "r");
   if (!file) {
-    // Serial2.println("Failed to open file for reading");
+    Serial.println("Failed to open file for reading");
     return 1.0;  // Return the default calibration factor if file reading fails
   }
 
@@ -302,7 +301,7 @@ float getCalibrationFactor(bool printToSerial = false) {
   DeserializationError error = deserializeJson(temp, file);
   file.close();
   if (error) {
-    // Serial2.println("Failed to read file, using default calibration factor");
+    Serial.println("Failed to read file, using default calibration factor");
     if (printToSerial) {
       DynamicJsonDocument responseDoc(1024);
       responseDoc["data"] = 1.0;
@@ -357,17 +356,17 @@ void initScale() {
   boolean _tare = true;
   LoadCell.start(stabilizingtime, _tare);
   if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
-    // Serial2.println("Timeout, check MCU>HX711 wiring and pin designations");
+    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
     while (1);
   } else {
     float calibrationFactor = getCalibrationFactor();
-    // Serial2.println(calibrationFactor);
+    Serial.println(calibrationFactor);
     if (calibrationFactor > 0) {
       LoadCell.setCalFactor(calibrationFactor);
     } else {
       LoadCell.setCalFactor(1.0);
     }
-    // Serial2.println("Startup is complete");
+    Serial.println("Startup is complete");
   }
   while (!LoadCell.update());
 }
@@ -386,22 +385,23 @@ void refreshDataSet() {
 }
 
 bool checkStableState(float wt, String unit, float std) {
+  // diff = std  / ((9600 * 20 / 200) / RS485_BAUD);
   float diff = 0.0;
   if (doCheckStableState) {
     if (unit == "kg") {
-      diff = std  / 20.0f;
+      diff = std * (960.0f / RS485_BAUD);
     } else {
       if (std == 0) {
         diff = 1.0f;
       } else {
-        diff = std / 20.0f;
+        diff = std * (960.0f / RS485_BAUD);
       }
     }
 
     if (wt >= wt - diff && wt <= wt + diff && abs(wt - lastWeight) <= diff) {
-    // abs(wt - lastWeight) <= hys MUST CHANGE THIS LOGIC
-    // if (abs(wt - lastWeight) < HYSTERESIS_STABLE_CHECK) {
-      stableReadingsCount++;
+      if (lastWeight > diff) {
+        stableReadingsCount++;
+      }
     } else {
       stableReadingsCount = 0;
     }
@@ -534,15 +534,15 @@ void createCalibrationFactor(float knownWeight) {
 
   // Check if the new calibration factor is valid
   if (isnan(newCalibrationFactor)) {
-    // Serial2.println("Failed to get new calibration factor, result is NaN");
+    Serial.println("Failed to get new calibration factor, result is NaN");
     return;
   }
 
-  // Serial2.print("New calibration factor has been set to: ");
-  // Serial2.println(newCalibrationFactor);
-  // Serial2.println("Use this as calibration factor (calFactor) in your project sketch.");
+  Serial.print("New calibration factor has been set to: ");
+  Serial.println(newCalibrationFactor);
+  Serial.println("Use this as calibration factor (calFactor) in your project sketch.");
 
-  // Serial2.println("Save this value to config.json");
+  Serial.println("Save this value to config.json");
 
   // Create a new JSON document to store the calibration factor
   StaticJsonDocument<200> temp;
@@ -551,7 +551,7 @@ void createCalibrationFactor(float knownWeight) {
   // Open the file for writing
   File file = SPIFFS.open("/config.json", "w");
   if (!file) {
-    // Serial2.println("Failed to open file for writing");
+    Serial.println("Failed to open file for writing");
     return;  // Return the new calibration factor even if file writing fails
   }
 
@@ -559,8 +559,8 @@ void createCalibrationFactor(float knownWeight) {
   serializeJson(temp, file);
   file.close();
 
-  // Serial2.println("End calibration");
-  // Serial2.println("***");
+  Serial.println("End calibration");
+  Serial.println("***");
 
   DynamicJsonDocument responseDoc(1024);
   responseDoc["data"] = newCalibrationFactor;
@@ -633,12 +633,13 @@ void handleCommand(String inputString) {
 }
 
 void setup() {
-  Serial1.begin(115200);
-  Serial2.begin(9600);
+  Serial.begin(115200);
+  Serial2.begin(RS485_BAUD);
   // Serial2.begin(9600, SERIAL_8N1, RS485_RX, RS485_TX);
+  Serial.println("init");
 
   if (!SPIFFS.begin(true)) {
-    // Serial2.println("An Error has occurred while mounting SPIFFS");
+    Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
 
