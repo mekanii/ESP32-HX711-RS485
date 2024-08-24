@@ -5,15 +5,12 @@
 #include "SPIFFS.h"
 #include <HX711_ADC.h>
 
-#define HX711_DT 16
-#define HX711_SCK 17
+#define HX711_DT 18
+#define HX711_SCK 19
 
-#define RS485_RX 18
-#define RS485_TX 19
+#define RS485_BAUD 19200
 
 HX711_ADC LoadCell(HX711_DT, HX711_SCK);
-
-HardwareSerial RS485Serial(1);
 
 // #define HYSTERESIS 5.0f
 // #define HYSTERESIS_KG 0.01f
@@ -39,20 +36,20 @@ void getPartList() {
   // Read the existing file
   File file = SPIFFS.open("/partList.json", "r");
   if (!file) {
-    // Serial.println("Failed to open file for reading");
+    // Serial2.println("Failed to open file for reading");
     return;
   }
 
   DeserializationError error = deserializeJson(doc, file);
   file.close();
   if (error) {
-    // Serial.println("Failed to read file, returning empty JSON document");
+    // Serial2.println("Failed to read file, returning empty JSON document");
     return;
   }
 
   // Check if partList key exists and is an array
   if (!doc.containsKey("partList") || !doc["partList"].is<JsonArray>()) {
-    // Serial.println("partList key is missing or not an array");
+    // Serial2.println("partList key is missing or not an array");
     return;
   }
 
@@ -61,9 +58,9 @@ void getPartList() {
   responseDoc["message"] = "Part list retrieved successfully";
   responseDoc["status"] = 200;
 
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 void getPart(int id) {
@@ -103,9 +100,9 @@ void createPartList() {
   responseDoc["message"] = "Parts created";
   responseDoc["status"] = 200;
   
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 void createPart(String name, float std, String unit, float hysteresis) {
@@ -115,11 +112,11 @@ void createPart(String name, float std, String unit, float hysteresis) {
   // Try to read the existing file
   File file = SPIFFS.open("/partList.json", "r");
   if (!file) {
-    // Serial.println("Failed to open file for reading, creating new file");
+    // Serial2.println("Failed to open file for reading, creating new file");
     // Create a new file
     file = SPIFFS.open("/partList.json", "w");
     if (!file) {
-      // Serial.println("Failed to create new file");
+      // Serial2.println("Failed to create new file");
       return;
     }
     // Initialize the JSON structure
@@ -129,7 +126,7 @@ void createPart(String name, float std, String unit, float hysteresis) {
     DeserializationError error = deserializeJson(temp, file);
     file.close();
     if (error) {
-      // Serial.println("Failed to read file, using empty JSON");
+      // Serial2.println("Failed to read file, using empty JSON");
     }
   }
 
@@ -145,7 +142,7 @@ void createPart(String name, float std, String unit, float hysteresis) {
   // Check if part with the same ID already exists
   for (JsonObject part : partListArray) {
     if (part["id"].as<int>() == id) {
-      // Serial.println("Part with this ID already exists");
+      // Serial2.println("Part with this ID already exists");
       return;
     }
   }
@@ -160,7 +157,7 @@ void createPart(String name, float std, String unit, float hysteresis) {
   // Write the updated file
   file = SPIFFS.open("/partList.json", "w");
   if (!file) {
-    // Serial.println("Failed to open file for writing");
+    // Serial2.println("Failed to open file for writing");
     return;
   }
   serializeJson(temp, file);
@@ -171,9 +168,9 @@ void createPart(String name, float std, String unit, float hysteresis) {
   responseDoc["message"] = "Part created";
   responseDoc["status"] = 200;
   
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 void updatePart(int id, String name, float std, String unit, float hysteresis) {
@@ -182,13 +179,13 @@ void updatePart(int id, String name, float std, String unit, float hysteresis) {
   // Read the existing file
   File file = SPIFFS.open("/partList.json", "r");
   if (!file) {
-    // Serial.println("Failed to open file for reading");
+    // Serial2.println("Failed to open file for reading");
     return;
   }
   DeserializationError error = deserializeJson(temp, file);
   file.close();
   if (error) {
-    // Serial.println("Failed to read file, using empty JSON");
+    // Serial2.println("Failed to read file, using empty JSON");
   }
 
   JsonArray partListArray = temp["partList"].as<JsonArray>();
@@ -200,10 +197,10 @@ void updatePart(int id, String name, float std, String unit, float hysteresis) {
       part["std"] = std;
       part["unit"] = unit;
       part["hysteresis"] = hysteresis;
-      // Serial.println("id: " + String(part["id"].as<int>()));
-      // Serial.println("name: " + part["name"].as<String>());
-      // Serial.println("std: " + String(part["std"].as<float>(), 2));
-      // Serial.println("unit: " + part["unit"].as<String>());
+      // Serial2.println("id: " + String(part["id"].as<int>()));
+      // Serial2.println("name: " + part["name"].as<String>());
+      // Serial2.println("std: " + String(part["std"].as<float>(), 2));
+      // Serial2.println("unit: " + part["unit"].as<String>());
       break;
     }
   }
@@ -211,7 +208,7 @@ void updatePart(int id, String name, float std, String unit, float hysteresis) {
   // Write the updated file
   file = SPIFFS.open("/partList.json", "w");
   if (!file) {
-    // Serial.println("Failed to open file for writing");
+    // Serial2.println("Failed to open file for writing");
     return;
   }
   serializeJson(temp, file);
@@ -221,9 +218,9 @@ void updatePart(int id, String name, float std, String unit, float hysteresis) {
   responseDoc["data"] = nullptr;
   responseDoc["message"] = "Part updated";
   responseDoc["status"] = 200;
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 void deletePart(int id) {
@@ -232,23 +229,23 @@ void deletePart(int id) {
   // Read the existing file
   File file = SPIFFS.open("/partList.json", "r");
   if (!file) {
-    // Serial.println("Failed to open file for reading");
+    // Serial2.println("Failed to open file for reading");
     return;
   }
   DeserializationError error = deserializeJson(temp, file);
   file.close();
   if (error) {
-    // Serial.println("Failed to read file, returning");
+    // Serial2.println("Failed to read file, returning");
     return;
   }
 
   JsonArray partListArray = temp["partList"].as<JsonArray>();
   for (size_t i = 0; i < partListArray.size(); i++) {
     if (partListArray[i]["id"].as<int>() == id) {
-      // Serial.println("id: " + String(partListArray[i]["id"].as<int>()));
-      // Serial.println("name: " + partListArray[i]["name"].as<String>());
-      // Serial.println("std: " + String(partListArray[i]["std"].as<float>(), 2));
-      // Serial.println("unit: " + partListArray[i]["unit"].as<String>());
+      // Serial2.println("id: " + String(partListArray[i]["id"].as<int>()));
+      // Serial2.println("name: " + partListArray[i]["name"].as<String>());
+      // Serial2.println("std: " + String(partListArray[i]["std"].as<float>(), 2));
+      // Serial2.println("unit: " + partListArray[i]["unit"].as<String>());
       partListArray.remove(i);
       break;
     }
@@ -257,7 +254,7 @@ void deletePart(int id) {
   // Write the updated file
   file = SPIFFS.open("/partList.json", "w");
   if (!file) {
-    // Serial.println("Failed to open file for writing");
+    // Serial2.println("Failed to open file for writing");
     return;
   }
   serializeJson(temp, file);
@@ -268,9 +265,9 @@ void deletePart(int id) {
   responseDoc["message"] = "Part deleted";
   responseDoc["status"] = 200;
   
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 // END: PART MANAGER
 
@@ -288,15 +285,15 @@ void tare() {
   responseDoc["message"] = "Tare initialized successfully";
   responseDoc["status"] = 200;
   
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 float getCalibrationFactor(bool printToSerial = false) {
   File file = SPIFFS.open("/config.json", "r");
   if (!file) {
-    // Serial.println("Failed to open file for reading");
+    Serial.println("Failed to open file for reading");
     return 1.0;  // Return the default calibration factor if file reading fails
   }
 
@@ -304,47 +301,47 @@ float getCalibrationFactor(bool printToSerial = false) {
   DeserializationError error = deserializeJson(temp, file);
   file.close();
   if (error) {
-    // Serial.println("Failed to read file, using default calibration factor");
+    Serial.println("Failed to read file, using default calibration factor");
     if (printToSerial) {
       DynamicJsonDocument responseDoc(1024);
       responseDoc["data"] = 1.0;
       responseDoc["message"] = "Failed to read file, using default calibration factor";
       responseDoc["status"] = 200;
       
-      serializeJson(responseDoc, Serial);
+      serializeJson(responseDoc, Serial2);
 
-      Serial.println();
+      Serial2.println();
     }
     return 1.0;  // Return the default calibration factor if file reading fails
   }
 
   // Check if the calFactor key exists and is a valid float
   if (!temp.containsKey("calFactor") || !temp["calFactor"].is<float>()) {
-    // Serial.println("calFactor key is missing or not a valid float, using default calibration factor");
+    // Serial2.println("calFactor key is missing or not a valid float, using default calibration factor");
     if (printToSerial) {
       DynamicJsonDocument responseDoc(1024);
       responseDoc["data"] = 1.0;
       responseDoc["message"] = "calFactor key is missing or not a valid float, using default calibration factor";
       responseDoc["status"] = 200;
       
-      serializeJson(responseDoc, Serial);
+      serializeJson(responseDoc, Serial2);
 
-      Serial.println();
+      Serial2.println();
     }
     return 1.0;  // Return the default calibration factor if the key is missing or invalid
   }
 
   float calibrationFactor = temp["calFactor"].as<float>();
-  // Serial.println("Calibration factor read from config: " + String(calibrationFactor));
+  // Serial2.println("Calibration factor read from config: " + String(calibrationFactor));
   if (printToSerial) {
     DynamicJsonDocument responseDoc(1024);
     responseDoc["data"] = calibrationFactor;
     responseDoc["message"] = "Calibration Factor retrieved successfully";
     responseDoc["status"] = 200;
     
-    serializeJson(responseDoc, Serial);
+    serializeJson(responseDoc, Serial2);
 
-    Serial.println();
+    Serial2.println();
   }
   return calibrationFactor;
 }
@@ -359,17 +356,17 @@ void initScale() {
   boolean _tare = true;
   LoadCell.start(stabilizingtime, _tare);
   if (LoadCell.getTareTimeoutFlag() || LoadCell.getSignalTimeoutFlag()) {
-    // Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
     while (1);
   } else {
     float calibrationFactor = getCalibrationFactor();
-    // Serial.println(calibrationFactor);
+    Serial.println(calibrationFactor);
     if (calibrationFactor > 0) {
       LoadCell.setCalFactor(calibrationFactor);
     } else {
       LoadCell.setCalFactor(1.0);
     }
-    // Serial.println("Startup is complete");
+    Serial.println("Startup is complete");
   }
   while (!LoadCell.update());
 }
@@ -382,23 +379,29 @@ void refreshDataSet() {
   responseDoc["message"] = "Data set refreshed successfully";
   responseDoc["status"] = 200;
   
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
-bool checkStableState(float wt, String unit) {
-  float hys = 0.0;
+bool checkStableState(float wt, String unit, float std) {
+  // diff = std  / ((9600 * 20 / 200) / RS485_BAUD);
+  float diff = 0.0;
   if (doCheckStableState) {
     if (unit == "kg") {
-      hys = HYSTERESIS_STABLE_CHECK / 1000.0;
+      diff = std * (960.0f / RS485_BAUD);
     } else {
-      hys = HYSTERESIS_STABLE_CHECK;
+      if (std == 0) {
+        diff = 1.0f;
+      } else {
+        diff = std * (960.0f / RS485_BAUD);
+      }
     }
 
-    if (wt >= wt - hys && wt <= wt + hys && abs(wt - lastWeight) <= hys) {
-    // if (abs(wt - lastWeight) < HYSTERESIS_STABLE_CHECK) {
-      stableReadingsCount++;
+    if (wt >= wt - diff && wt <= wt + diff && abs(wt - lastWeight) <= diff) {
+      if (lastWeight > diff) {
+        stableReadingsCount++;
+      }
     } else {
       stableReadingsCount = 0;
     }
@@ -417,8 +420,8 @@ float getScale() {
   if (newDataReady) {
     if (millis() > t) {
       weight = LoadCell.getData();
-      // Serial.print("Load_cell output val: ");
-      // Serial.println(weight);
+      // Serial2.print("Load_cell output val: ");
+      // Serial2.println(weight);
       newDataReady = 0;
       t = millis();
       doCheckStableState = true;
@@ -434,7 +437,7 @@ void getWeight(float partStd, String partUnit, float hysteresis) {
     wt = wt / 1000.0;
   }
 
-  if (checkStableState(wt, partUnit)) {
+  if (checkStableState(wt, partUnit, partStd)) {
     // float hys = 0.0;
     // if (partUnit == "kg") {
     //   hys = HYSTERESIS_KG;
@@ -469,9 +472,9 @@ void getWeight(float partStd, String partUnit, float hysteresis) {
   responseDoc["message"] = "Weight retrieved successfully";
   responseDoc["status"] = 200;
 
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 void getStableWeight() {
@@ -480,7 +483,7 @@ void getStableWeight() {
   LoadCell.refreshDataSet();
   while (!stable) {
     float newWeight = getScale();
-    if (checkStableState(newWeight, "gr")) {
+    if (checkStableState(newWeight, "gr", 0)) {
       if (newWeight > 2.0f) {
         data = newWeight;
         stable = true;
@@ -493,16 +496,16 @@ void getStableWeight() {
   responseDoc["message"] = "Stable Weight retrieved successfully";
   responseDoc["status"] = 200;
 
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 void initCalibration() {
-  // Serial.println("***");
-  // Serial.println("Start calibration:");
-  // Serial.println("Place the load cell an a level stable surface.");
-  // Serial.println("Remove any load applied to the load cell.");
+  // Serial2.println("***");
+  // Serial2.println("Start calibration:");
+  // Serial2.println("Place the load cell an a level stable surface.");
+  // Serial2.println("Remove any load applied to the load cell.");
 
   LoadCell.tareNoDelay();
   while (!LoadCell.getTareStatus()) {
@@ -510,16 +513,16 @@ void initCalibration() {
     delay(100);
   }
 
-  // Serial.println("Now, place your known mass on the loadcell.");
+  // Serial2.println("Now, place your known mass on the loadcell.");
   
   DynamicJsonDocument responseDoc(1024);
   responseDoc["data"] = true;
   responseDoc["message"] = "Calibration initialized successfully";
   responseDoc["status"] = 200;
 
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 }
 
 void createCalibrationFactor(float knownWeight) {
@@ -531,15 +534,15 @@ void createCalibrationFactor(float knownWeight) {
 
   // Check if the new calibration factor is valid
   if (isnan(newCalibrationFactor)) {
-    // Serial.println("Failed to get new calibration factor, result is NaN");
+    Serial.println("Failed to get new calibration factor, result is NaN");
     return;
   }
 
-  // Serial.print("New calibration factor has been set to: ");
-  // Serial.println(newCalibrationFactor);
-  // Serial.println("Use this as calibration factor (calFactor) in your project sketch.");
+  Serial.print("New calibration factor has been set to: ");
+  Serial.println(newCalibrationFactor);
+  Serial.println("Use this as calibration factor (calFactor) in your project sketch.");
 
-  // Serial.println("Save this value to config.json");
+  Serial.println("Save this value to config.json");
 
   // Create a new JSON document to store the calibration factor
   StaticJsonDocument<200> temp;
@@ -548,7 +551,7 @@ void createCalibrationFactor(float knownWeight) {
   // Open the file for writing
   File file = SPIFFS.open("/config.json", "w");
   if (!file) {
-    // Serial.println("Failed to open file for writing");
+    Serial.println("Failed to open file for writing");
     return;  // Return the new calibration factor even if file writing fails
   }
 
@@ -556,17 +559,17 @@ void createCalibrationFactor(float knownWeight) {
   serializeJson(temp, file);
   file.close();
 
-  // Serial.println("End calibration");
-  // Serial.println("***");
+  Serial.println("End calibration");
+  Serial.println("***");
 
   DynamicJsonDocument responseDoc(1024);
   responseDoc["data"] = newCalibrationFactor;
   responseDoc["message"] = "Cal Factor created";
   responseDoc["status"] = 200;
   
-  serializeJson(responseDoc, Serial);
+  serializeJson(responseDoc, Serial2);
 
-  Serial.println();
+  Serial2.println();
 
 }
 // END: SCALE MANAGER
@@ -576,7 +579,7 @@ void handleCommand(String inputString) {
   DeserializationError error = deserializeJson(doc, inputString);
 
   if (error) {
-    // Serial.println("Failed to parse JSON");
+    // Serial2.println("Failed to parse JSON");
     return;
   }
 
@@ -624,17 +627,19 @@ void handleCommand(String inputString) {
       getCalibrationFactor(true);
       break;
     default:
-      // Serial.println("Unknown command");
+      // Serial2.println("Unknown command");
       break;
   }
 }
 
 void setup() {
   Serial.begin(115200);
-  RS485Serial.begin(9600, SERIAL_8N1, RS485_RX, RS485_TX);
+  Serial2.begin(RS485_BAUD);
+  // Serial2.begin(9600, SERIAL_8N1, RS485_RX, RS485_TX);
+  Serial.println("init");
 
   if (!SPIFFS.begin(true)) {
-    // Serial.println("An Error has occurred while mounting SPIFFS");
+    Serial.println("An Error has occurred while mounting SPIFFS");
     return;
   }
 
@@ -643,13 +648,18 @@ void setup() {
 
 void loop() {
   String inputString = "";
-  while (Serial.available()) {
-    char inChar = (char)Serial.read();
-    if (inChar == '\n') {
-      break;
-    }
-    inputString += inChar;
+  // while (Serial2.available()) {
+  //   char inChar = (char)Serial2.read();
+  //   if (inChar == '\n') {
+  //     break;
+  //   }
+  //   inputString += inChar;
+  // }
+  // handleCommand(inputString);
+
+  if (Serial2.available()) {
+    String receivedData = Serial2.readStringUntil('\n');
+    // Serial2.println("Received: " + receivedData);
+    handleCommand(receivedData);
   }
-  // Serial.println("Received: " + inputString);
-  handleCommand(inputString);
 }
