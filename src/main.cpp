@@ -106,7 +106,7 @@ void createPartList() {
 }
 
 void createPart(String name, float std, String unit, float hysteresis) {
-  const size_t capacity = JSON_ARRAY_SIZE(9) + JSON_OBJECT_SIZE(9) + 400;
+  const size_t capacity = JSON_ARRAY_SIZE(50) + JSON_OBJECT_SIZE(5) + 400;
   DynamicJsonDocument temp(capacity);
 
   // Try to read the existing file
@@ -153,6 +153,16 @@ void createPart(String name, float std, String unit, float hysteresis) {
   newPart["std"] = std;
   newPart["unit"] = unit;
   newPart["hysteresis"] = hysteresis;
+
+  Serial.print(id);
+  Serial.print(", ");
+  Serial.print(name);
+  Serial.print(", ");
+  Serial.print(std);
+  Serial.print(", ");
+  Serial.print(unit);
+  Serial.print(", ");
+  Serial.println(hysteresis);
 
   // Write the updated file
   file = SPIFFS.open("/partList.json", "w");
@@ -562,6 +572,7 @@ void createCalibrationFactor(float knownWeight) {
   Serial.println("End calibration");
   Serial.println("***");
 
+
   DynamicJsonDocument responseDoc(1024);
   responseDoc["data"] = newCalibrationFactor;
   responseDoc["message"] = "Cal Factor created";
@@ -571,6 +582,46 @@ void createCalibrationFactor(float knownWeight) {
 
   Serial2.println();
 
+  initScale();
+}
+
+void resetCalibrationFactor() {
+  float newCalibrationFactor = 1.0f;
+
+  Serial.print("New calibration factor has been set to: ");
+  Serial.println(newCalibrationFactor);
+  Serial.println("Use this as calibration factor (calFactor) in your project sketch.");
+
+  Serial.println("Save this value to config.json");
+
+  // Create a new JSON document to store the calibration factor
+  StaticJsonDocument<200> temp;
+  temp["calFactor"] = newCalibrationFactor;
+
+  // Open the file for writing
+  File file = SPIFFS.open("/config.json", "w");
+  if (!file) {
+    Serial.println("Failed to open file for writing");
+    return;  // Return the new calibration factor even if file writing fails
+  }
+
+  // Write the updated JSON to the file
+  serializeJson(temp, file);
+  file.close();
+
+  Serial.println("End calibration");
+  Serial.println("***");
+
+  DynamicJsonDocument responseDoc(1024);
+  responseDoc["data"] = newCalibrationFactor;
+  responseDoc["message"] = "Cal Factor resetted to 1.0";
+  responseDoc["status"] = 200;
+  
+  serializeJson(responseDoc, Serial2);
+
+  Serial2.println();
+
+  initScale();
 }
 // END: SCALE MANAGER
 
@@ -626,6 +677,9 @@ void handleCommand(String inputString) {
     case 13:
       getCalibrationFactor(true);
       break;
+    case 14:
+      resetCalibrationFactor();
+      break;
     default:
       // Serial2.println("Unknown command");
       break;
@@ -648,18 +702,10 @@ void setup() {
 
 void loop() {
   String inputString = "";
-  // while (Serial2.available()) {
-  //   char inChar = (char)Serial2.read();
-  //   if (inChar == '\n') {
-  //     break;
-  //   }
-  //   inputString += inChar;
-  // }
-  // handleCommand(inputString);
 
   if (Serial2.available()) {
     String receivedData = Serial2.readStringUntil('\n');
-    // Serial2.println("Received: " + receivedData);
+    Serial.println("Received: " + receivedData);
     handleCommand(receivedData);
   }
 }
