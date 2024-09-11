@@ -30,7 +30,7 @@ JsonArray parts;
 
 // BEGIN: PART MANAGER
 void getPartList() {
-  const size_t capacity = JSON_ARRAY_SIZE(9) + JSON_OBJECT_SIZE(9) + 400;
+  const size_t capacity = JSON_ARRAY_SIZE(50) + JSON_OBJECT_SIZE(6) + 400;
   doc.clear(); // Clear the document before use
 
   // Read the existing file
@@ -71,9 +71,9 @@ void createPartList() {
   const char* jsonContent = R"rawliteral(
   {
     "partList": [
-      { "id": 1,"name": "PART 01", "std": 100.00, "unit": "gr", "hysteresis": 5.0 },
-      { "id": 2,"name": "PART 02", "std": 500.00, "unit": "gr", "hysteresis": 5.0 },
-      { "id": 3,"name": "PART 03", "std": 1.25, "unit": "kg", "hysteresis": 0.01 }
+      { "id": 1,"name": "PART 01", "std": 100.00, "unit": "gr", "hysteresis": 5.0, "pack": 100 },
+      { "id": 2,"name": "PART 02", "std": 500.00, "unit": "gr", "hysteresis": 5.0, "pack": 100 },
+      { "id": 3,"name": "PART 03", "std": 1.25, "unit": "kg", "hysteresis": 0.01, "pack": 100 }
     ]
   }
   )rawliteral";
@@ -105,8 +105,8 @@ void createPartList() {
   Serial2.println();
 }
 
-void createPart(String name, float std, String unit, float hysteresis) {
-  const size_t capacity = JSON_ARRAY_SIZE(50) + JSON_OBJECT_SIZE(5) + 400;
+void createPart(String name, float std, String unit, float hysteresis, int pack) {
+  const size_t capacity = JSON_ARRAY_SIZE(50) + JSON_OBJECT_SIZE(6) + 400;
   DynamicJsonDocument temp(capacity);
 
   // Try to read the existing file
@@ -153,6 +153,7 @@ void createPart(String name, float std, String unit, float hysteresis) {
   newPart["std"] = std;
   newPart["unit"] = unit;
   newPart["hysteresis"] = hysteresis;
+  newPart["pack"] = pack;
 
   Serial.print(id);
   Serial.print(", ");
@@ -162,7 +163,9 @@ void createPart(String name, float std, String unit, float hysteresis) {
   Serial.print(", ");
   Serial.print(unit);
   Serial.print(", ");
-  Serial.println(hysteresis);
+  Serial.print(hysteresis);
+  Serial.print(", ");
+  Serial.println(pack);
 
   // Write the updated file
   file = SPIFFS.open("/partList.json", "w");
@@ -183,7 +186,7 @@ void createPart(String name, float std, String unit, float hysteresis) {
   Serial2.println();
 }
 
-void updatePart(int id, String name, float std, String unit, float hysteresis) {
+void updatePart(int id, String name, float std, String unit, float hysteresis, int pack) {
   DynamicJsonDocument temp(1024);
 
   // Read the existing file
@@ -207,6 +210,7 @@ void updatePart(int id, String name, float std, String unit, float hysteresis) {
       part["std"] = std;
       part["unit"] = unit;
       part["hysteresis"] = hysteresis;
+      part["pack"] = pack;
       // Serial2.println("id: " + String(part["id"].as<int>()));
       // Serial2.println("name: " + part["name"].as<String>());
       // Serial2.println("std: " + String(part["std"].as<float>(), 2));
@@ -648,10 +652,10 @@ void handleCommand(String inputString) {
       createPartList();
       break;
     case 4:
-      createPart(data["name"], data["std"], data["unit"], data["hysteresis"]);
+      createPart(data["name"], data["std"], data["unit"], data["hysteresis"], data["pack"]);
       break;
     case 5:
-      updatePart(data["id"], data["name"], data["std"], data["unit"], data["hysteresis"]);
+      updatePart(data["id"], data["name"], data["std"], data["unit"], data["hysteresis"], data["pack"]);
       break;
     case 6:
       deletePart(data["id"]);
